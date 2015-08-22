@@ -28,102 +28,100 @@ local PLUGIN = PLUGIN
 						I WAS LAZY
 						- rebel1324
 ---------------------------------------------------------*/
-if CLIENT then
-	local PANEL = {}
-	function PANEL:Init()
-		local sh = ScrH()/1.5
-		self:SetTitle( "Dialogue" )
-		self:SetSize( sh*.8, sh )
-		self.content = vgui.Create( "Panel", self )
-		self.content:Dock( FILL )
-		self.btnlist = {}
-		self:MakePopup()
-		self:Center()
-		self.text = self.content:Add( "DPanel" )
-		self.text:SetPos( 0, 0 )
-		self.text:SetSize( self.content:GetWide(), self.content:GetTall()*.8 - 5 )
-		self.dialouge = vgui.Create( "DScrollPanel", self.text )
-		self.dialouge:DockMargin(10, 10, 10, 10)
-		self.dialouge:Dock( FILL )
-		self.dialouge.Paint = function() end
-		self.select = self.content:Add( "DPanel" )
-		self.select:SetPos( 0, self.content:GetTall()*.8 )
-		self.select:SetSize( self.content:GetWide(), self.content:GetTall()*.2 )
-		self.sdialouge = vgui.Create( "DScrollPanel", self.select )
-		self.sdialouge:DockMargin(3, 3, 3, 3)
-		self.sdialouge:Dock( FILL )
-		self.sdialouge.Paint = function() end
-	end
-	function PANEL:SetEntity( ent )
-		self.name = ent:getNetVar( "name", "John Doe" )
-		self.dialogue = ent:getNetVar( "dialogue", PLUGIN.defaultDialogue )
-		self:AddChat( self.name, self.dialogue.npc._start )
-		self:AddSelection( self.dialogue.player )
-	end
-	function PANEL:AddSelection( tbl )
-		for k, v in pairs( tbl ) do
-			local btn = self.sdialouge:Add( "DButton" )
-			btn:SetFont( "Nut_NPCChatSel" )
-			btn:SetTextColor( color_white )
-			btn:SetText(v )
-			btn:DockMargin(0, 0, 0, 0)
-			btn:Dock(TOP)
-			btn.DoClick = function()
-				if k == "_quit" then self:Close() return end
-				if self.talking then return end
-				local dat = self.dialogue.npc[ k ]
-				self:AddChat( LocalPlayer():Name(), v )
+local PANEL = {}
+function PANEL:Init()
+	local sh = ScrH()/1.5
+	self:SetTitle( L"dialogue" )
+	self:SetSize( sh*.8, sh )
+	self.content = vgui.Create( "Panel", self )
+	self.content:Dock( FILL )
+	self.btnlist = {}
+	self:MakePopup()
+	self:Center()
+	self.text = self.content:Add( "DPanel" )
+	self.text:SetPos( 0, 0 )
+	self.text:SetSize( self.content:GetWide(), self.content:GetTall()*.8 - 5 )
+	self.dialouge = vgui.Create( "DScrollPanel", self.text )
+	self.dialouge:DockMargin(10, 10, 10, 10)
+	self.dialouge:Dock( FILL )
+	self.dialouge.Paint = function() end
+	self.select = self.content:Add( "DPanel" )
+	self.select:SetPos( 0, self.content:GetTall()*.8 )
+	self.select:SetSize( self.content:GetWide(), self.content:GetTall()*.2 )
+	self.sdialouge = vgui.Create( "DScrollPanel", self.select )
+	self.sdialouge:DockMargin(3, 3, 3, 3)
+	self.sdialouge:Dock( FILL )
+	self.sdialouge.Paint = function() end
+end
+function PANEL:SetEntity( ent )
+	self.name = ent:getNetVar( "name", "John Doe" )
+	self.dialogue = ent:getNetVar( "dialogue", PLUGIN.defaultDialogue )
+	self:AddChat( self.name, self.dialogue.npc._start )
+	self:AddSelection( self.dialogue.player )
+end
+function PANEL:AddSelection( tbl )
+	for k, v in pairs( tbl ) do
+		local btn = self.sdialouge:Add( "DButton" )
+		btn:SetFont( "Nut_NPCChatSel" )
+		btn:SetTextColor( color_white )
+		btn:SetText(v )
+		btn:DockMargin(0, 0, 0, 0)
+		btn:Dock(TOP)
+		btn.DoClick = function()
+			if k == "_quit" then self:Close() return end
+			if self.talking then return end
+			local dat = self.dialogue.npc[ k ]
+			self:AddChat( LocalPlayer():Name(), v )
+			self.talking = true
+			if !( string.Left( k, 1 ) == "!" ) then
+				timer.Simple( math.Rand( PLUGIN.chatDelay.min, PLUGIN.chatDelay.max ), function()
+					if self:IsValid() then
+						self.talking = false
+						self:AddChat( self.name, self.dialogue.npc[ k ] )
+					end
+				end)
+			else
+				-- special dialogue hook.
+				netstream.Start("nut_DialogueMessage", { name = self.name, request = k } )
 				self.talking = true
-				if !( string.Left( k, 1 ) == "!" ) then
-					timer.Simple( math.Rand( PLUGIN.chatDelay.min, PLUGIN.chatDelay.max ), function()
-						if self:IsValid() then
-							self.talking = false
-							self:AddChat( self.name, self.dialogue.npc[ k ] )
-						end
-					end)
-				else
-					-- special dialogue hook.
-					netstream.Start("nut_DialogueMessage", { name = self.name, request = k } )
-					self.talking = true
-				end
 			end
 		end
 	end
-	function PANEL:AddName( str )
-		local lab = self.dialouge:Add( "DLabel" )
-		lab:SetFont( "Nut_NPCChatName" )
-		lab:SetTextColor( color_white )
-		lab:SetText(str )
-		lab:SizeToContents()
-		lab:DockMargin(3, 3, 3, 0)
-		lab:Dock(TOP)
-	end
-	function PANEL:AddText( str )
-		local lab = self.dialouge:Add( "DLabel" )
-		lab:SetTextColor( color_white )
-		lab:SetFont( "Nut_NPCChatText" )
-		lab:SetText( str )
-		lab:SetWrap( true )
-		lab:DockMargin(10, 0, 3, 5)
-		lab:Dock(TOP)
-		lab:SetAutoStretchVertical( true )
-	end
-	function PANEL:AddCustomText( str, font, color )
-		local lab = self.dialouge:Add( "DLabel" )
-		lab:SetTextColor( color or color_white )
-		lab:SetFont( font or "Nut_NPCChatText" )
-		lab:SetText( str )
-		lab:SetWrap( true )
-		lab:DockMargin(10, 0, 3, 5)
-		lab:Dock(TOP)
-		lab:SetAutoStretchVertical( true )
-	end
-	function PANEL:AddChat( str1, str2 )
-		self:AddName( str1 )
-		self:AddText( str2 )
-	end
-	vgui.Register( "Nut_Dialogue", PANEL, "DFrame" )
 end
+function PANEL:AddName( str )
+	local lab = self.dialouge:Add( "DLabel" )
+	lab:SetFont( "Nut_NPCChatName" )
+	lab:SetTextColor( color_white )
+	lab:SetText(str )
+	lab:SizeToContents()
+	lab:DockMargin(3, 3, 3, 0)
+	lab:Dock(TOP)
+end
+function PANEL:AddText( str )
+	local lab = self.dialouge:Add( "DLabel" )
+	lab:SetTextColor( color_white )
+	lab:SetFont( "Nut_NPCChatText" )
+	lab:SetText( str )
+	lab:SetWrap( true )
+	lab:DockMargin(10, 0, 3, 5)
+	lab:Dock(TOP)
+	lab:SetAutoStretchVertical( true )
+end
+function PANEL:AddCustomText( str, font, color )
+	local lab = self.dialouge:Add( "DLabel" )
+	lab:SetTextColor( color or color_white )
+	lab:SetFont( font or "Nut_NPCChatText" )
+	lab:SetText( str )
+	lab:SetWrap( true )
+	lab:DockMargin(10, 0, 3, 5)
+	lab:Dock(TOP)
+	lab:SetAutoStretchVertical( true )
+end
+function PANEL:AddChat( str1, str2 )
+	self:AddName( str1 )
+	self:AddText( str2 )
+end
+vgui.Register( "Nut_Dialogue", PANEL, "DFrame" )
 
 /*---------------------------------------------------------
 	DIALOGUE EDITOR PANEL
@@ -136,7 +134,7 @@ function PANEL:Init()
 	self:MakePopup()
 	--self:Center()
 	local sh = ScrH()/1.5
-	self:SetTitle( "Dialogue" )
+	self:SetTitle( L"dialogue" )
 	self:SetSize( sh*.8, sh )
 	self:SetPos( 0, (ScrH()-sh)/2)
 	--print( self:GetPos() )
@@ -159,11 +157,11 @@ function PANEL:SetEntity( entity )
 		info:SizeToContents()
 		--- NPC dialogue
 		local npcd = self.scroll:Add("DLabel")
-		npcd:SetText("NPC Dialogues")
+		npcd:SetText(L"npcdialogues")
 		npcd:DockMargin(3, 3, 3, 3)
 		npcd:Dock(TOP)
 		npcd:SetTextColor(color_white)
-		npcd:SetFont("nut_ScoreTeamFont")
+		npcd:SetFont("Default")
 		npcd:SizeToContents()
 		self.npcd = self.scroll:Add( "DListView" )
 		self.npcd:SetPos( 0, 0 )
@@ -199,11 +197,11 @@ function PANEL:SetEntity( entity )
 		self.npcd:SetTall( 150 )
 		--- Player dialogue
 		local playerd = self.scroll:Add("DLabel")
-		playerd:SetText("Player Dialogues")
+		playerd:SetText(L"playerdialogues")
 		playerd:DockMargin(3, 3, 3, 3)
 		playerd:Dock(TOP)
 		playerd:SetTextColor(color_white)
-		playerd:SetFont("nut_ScoreTeamFont")
+		playerd:SetFont("Default")
 		playerd:SizeToContents()
 		self.plyd = self.scroll:Add( "DListView" )
 		self.plyd:SetPos( 0, 0 )
@@ -254,7 +252,7 @@ function PANEL:SetEntity( entity )
 		faction:DockMargin(3, 3, 3, 3)
 		faction:Dock(TOP)
 		faction:SetTextColor(color_white)
-		faction:SetFont("nut_ScoreTeamFont")
+		faction:SetFont("Default")
 		faction:SizeToContents()
 		local factionData = entity:getNetVar("factiondata", {})
 		for k, v in SortedPairs(nut.faction.teams) do
@@ -274,7 +272,7 @@ function PANEL:SetEntity( entity )
 		classes:DockMargin(3, 3, 3, 3)
 		classes:Dock(TOP)
 		classes:SetTextColor(color_white)
-		classes:SetFont("nut_ScoreTeamFont")
+		classes:SetFont("Default")
 		classes:SizeToContents()
 		self.classes = {}
 		local classData = entity:getNetVar("classdata", {})
@@ -295,7 +293,7 @@ function PANEL:SetEntity( entity )
 		name:DockMargin(3, 3, 3, 3)
 		name:Dock(TOP)
 		name:SetTextColor(color_white)
-		name:SetFont("nut_ScoreTeamFont")
+		name:SetFont("Default")
 		name:SizeToContents()
 		self.name = self.scroll:Add("DTextEntry")
 		self.name:Dock(TOP)
@@ -307,7 +305,7 @@ function PANEL:SetEntity( entity )
 		desc:DockMargin(3, 3, 3, 3)
 		desc:Dock(TOP)
 		desc:SetTextColor(color_white)
-		desc:SetFont("nut_ScoreTeamFont")
+		desc:SetFont("Default")
 		desc:SizeToContents()
 		self.desc = self.scroll:Add("DTextEntry")
 		self.desc:Dock(TOP)
@@ -319,7 +317,7 @@ function PANEL:SetEntity( entity )
 		model:DockMargin(3, 3, 3, 3)
 		model:Dock(TOP)
 		model:SetTextColor(Color(60, 60, 60))
-		model:SetFont("nut_ScoreTeamFont")
+		model:SetFont("Default")
 		model:SizeToContents()
 		self.model = self.scroll:Add("DTextEntry")
 		self.model:Dock(TOP)
