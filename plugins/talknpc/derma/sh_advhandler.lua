@@ -62,6 +62,24 @@ PLUGIN.SpecialCall =
 				panel.talking = false
 			end,
 		},
+		
+		
+		["quest_dart"] = {
+		sv = function( client, data )
+		local character = client:getChar()
+			character:setFaction(FACTION_metropolice)
+			character:setModel(table.Random(nut.faction.indices[FACTION_metropolice].models))
+			character.vars.faction = nut.faction.indices[FACTION_metropolice].uniqueID
+		return data
+		end,
+		cl = function( client, panel, data ) 
+		panel:AddChat( http://data.name, "Ну что, братуха? Добро пожаловать!" )
+		panel.talking = false
+			end,
+		},
+
+		
+		
 		["quest_art"] = {
 			sv = function( client, data ) 
 				if client:HasQuest( "art" ) then
@@ -78,7 +96,7 @@ PLUGIN.SpecialCall =
 					-- set quest and get quest.
 					data.gotquest = true -- Just got a quest!
 					local d_qst = questPLUGIN:GetQuest( "art" )
-					client:AddQuest( "art", d_qst:GenerateData( client ) ) -- Give a quest that has uniqueid 'honeya' and generates random data for quest.
+					client:AddQuest( "art", d_qst:GenerateData( client ) ) -- Give a quest that has uniqueid 'factiontransfer' and generates random data for quest.
 					-- Quest data generating function is in sh_quests.lua file.
 				end
 				return data -- MUST RETURN DATA
